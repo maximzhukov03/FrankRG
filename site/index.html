@@ -62,6 +62,11 @@
           actions.appendChild(dlBtn);
         }
 
+        const renameBtn = document.createElement("button");
+        renameBtn.textContent = "Переименовать";
+        renameBtn.onclick = () => renameItem(item.Name);
+        actions.appendChild(renameBtn);
+
         const delBtn = document.createElement("button");
         delBtn.textContent = "Удалить";
         delBtn.onclick = () => deleteItem(item.Name);
@@ -107,6 +112,23 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({path: currentPath, name})
       });
+      loadList();
+    }
+
+    async function renameItem(name) {
+      const newName = prompt(`Введите новое имя для "${name}":`);
+      if (!newName || newName.trim() === "" || newName === name) return;
+
+      await fetch("/api/rename", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          path: currentPath,
+          name: name,
+          newName: newName.trim()
+        })
+      });
+
       loadList();
     }
 
