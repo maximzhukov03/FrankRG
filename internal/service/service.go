@@ -1,7 +1,7 @@
 package service
 
 import (
-	database "browserfiles/test/internal/repository"
+	repository "browserfiles/test/internal/repository"
 	"errors"
 	"io"
 	"os"
@@ -15,8 +15,13 @@ var (
 	ErrInvalidName = errors.New("invalid new name")
 )
 
+type FileService struct{
+	repo repository.Repository
+	root string
+}
+
 type FileServicer interface{
-	List(path string) ([]database.Object, error)
+	List(path string) ([]repository.Object, error)
 	MakeDir(path, name string) error
 	Rename(path, name, newName string) error
 	Delete(path, name string) error
@@ -25,12 +30,7 @@ type FileServicer interface{
 	Exist(logicPath string) (ex bool, isDir bool, err error)
 }
 
-type FileService struct{
-	repo database.Repository
-	root string
-}
-
-func NewFileService(repo database.Repository) *FileService{
+func NewFileService(repo repository.Repository) *FileService{
 	return &FileService{
 		repo: repo,
 		root: repo.RootPath(),
@@ -39,7 +39,7 @@ func NewFileService(repo database.Repository) *FileService{
 
 func (s *FileService) joinSafe(logicalPath string, parts ...string) (string, error){
 	lp := strings.TrimSpace(logicalPath)
-	if lp == "" {
+	if lp == ""{
 		lp = "."
 	}
 	joined := filepath.Join(append([]string{s.root, lp}, parts...)...)
@@ -51,81 +51,5 @@ func (s *FileService) joinSafe(logicalPath string, parts ...string) (string, err
 	return clean, nil
 }
 
-func (s *FileService) List(logicalPath string) ([]database.Object, error){
-	p, err := s.joinSafe(logicalPath)
-	if err != nil{
-		return nil, err
-	}
-	return s.repo.List(p)
-}
 
-func (s *FileService) MakeDir(logicalPath, name string) error{
-	name = strings.TrimSpace(name)
-	if name == ""{
-		return ErrEmptyName
-	}
-	p, err := s.joinSafe(logicalPath)
-	if err != nil{
-		return err
-	}
-	return s.repo.MakeDir(p, name)
-}
 
-func (s *FileService) Rename(logicalPath, name, newName string) error{
-	name = strings.TrimSpace(name)
-	newName = strings.TrimSpace(newName)
-	if name == "" || newName == "" || newName == name{
-		return ErrEmptyName
-	}
-	p, err := s.joinSafe(logicalPath)
-	if err != nil{
-		return err
-	}
-	return s.repo.Rename(p, name, newName)
-}
-
-func (s *FileService) Delete(logicalPath, name string) error{
-	name = strings.TrimSpace(name)
-	if name == ""{
-		return ErrEmptyName
-	}
-	p, err := s.joinSafe(logicalPath)
-	if err != nil{
-		return err
-	}
-	return s.repo.Delete(p, name)
-}
-
-func (s *FileService) Save(logicalPath, name string, r io.Reader) (int64, error){
-	name = strings.TrimSpace(name)
-	if name == ""{
-		return 0, ErrEmptyName
-	}
-	p, err := s.joinSafe(logicalPath)
-	if err != nil{
-		return 0, err
-	}
-	return s.repo.Save(p, name, r)
-}
-
-func (s *FileService) Download(logicalPath string) (*os.File, string, string, error){
-	p, err := s.joinSafe(logicalPath)
-	if err != nil{
-		return nil, "", "", err
-	}
-	f, mime, err := s.repo.Download(p)
-	if err != nil{
-		return nil, "", "", err
-	}
-	filename := filepath.Base(p)
-	return f, mime, filename, nil
-}
-
-func (s *FileService) Exist(logicPath string) (bool, bool, error){
-	jS, err := s.joinSafe(logicPath)
-	if err != nil{
-		return  false, false, err
-	}
-
-	return  s.repo.Exist(jS)
-}
